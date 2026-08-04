@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini YT Music Player</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .player-card {
+            background: #181818;
+            padding: 20px;
+            border-radius: 12px;
+            width: 380px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        input {
+            width: 75%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #222;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 12px;
+            background: #1db954;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover { background: #1aa34a; }
+        .results-list {
+            max-height: 220px;
+            overflow-y: auto;
+            text-align: left;
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        .song-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .song-item:hover { background: #282828; }
+        .song-num {
+            color: #1db954;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        #now-playing {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #1db954;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="player-card">
+        <h3>YT Music Player</h3>
+        <input type="text" id="searchQuery" placeholder="Search song..." onkeydown="if(event.key === 'Enter') searchSongs()">
+        <button onclick="searchSongs()">Search</button>
+        
+        <div id="now-playing">Search and press a number key (1-9) to play</div>
+        
+        <div class="results-list" id="resultsList"></div>
+        
+        <!-- Embedded YouTube iframe for audio playback -->
+        <iframe id="ytAudioPlayer" width="0" height="0" src="" allow="autoplay"></iframe>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://192.168.1.15:3000';
+        let currentSongs = [];
+
+        async function searchSongs() {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) return;
+
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = 'Searching...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/search?q=${encodeURIComponent(query)}`);
+                currentSongs = await response.json();
+
+                resultsList.innerHTML = '';
+                if (currentSongs.length === 0) {
+                    resultsList.innerHTML = 'No results found.';
+                    return;
+                }
+
+                // Show top 9 results so they map cleanly to keys 1 through 9
+                const displaySongs = currentSongs.slice(0, 9);
+                displaySongs.forEach((song, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'song-item';
+                    div.innerHTML = `<span class="song-num">[${index + 1}]</span> ${song.name} - ${song.artist?.name || 'Unknown'}`;
+                    div.onclick = () => playSong(song.videoId, song.name);
+                    resultsList.appendChild(div);
+                });
+            } catch (err) {
+                resultsList.innerHTML = 'Error connecting to Termux API.';
+                console.error(err);
+            }
+        }
+
+        function playSong(videoId, title) {
+            document.getElementById('now-playing').textContent = `Playing: ${title}`;
+            const player = document.getElementById('ytAudioPlayer');
+            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        }
+
+        // Global keyboard listener to play track when keys 1-9 are pressed
+        document.addEventListener('keydown', (event) => {
+            // Ignore if the user is currently typing inside the search input box
+            if (document.activeElement === document.getElementById('searchQuery')) return;
+
+            const key = event.key;
+            const index = parseInt(key) - 1; // Map key '1' to index 0, '2' to index 1, etc.
+
+            if (index >= 0 && index < currentSongs.length) {
+                const song = currentSongs[index];
+                playSong(song.videoId, song.name);
+            }
+        });
+    </script>
+</body>
+</html>
