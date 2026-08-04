@@ -478,7 +478,7 @@
           <div class="card">
             <div class="card-text">
               <h3>Type to search</h3>
-              <p>Fetches directly from your API endpoint</p>
+              <p>Fetching from 192.168.1.15</p>
             </div>
           </div>
         </div>
@@ -532,16 +532,15 @@
   </div>
 
   <script>
-    // Server Endpoints
+    // Server Endpoints on local IP 192.168.1.15
     const API_URLS = {
-      GET_SONGS: 'http://localhost:3000/api/songs',
-      SEARCH_SONGS: 'http://localhost:3000/api/songs/search?q='
+      GET_SONGS: 'http://192.168.1.15:3000/api/songs',
+      SEARCH_SONGS: 'http://192.168.1.15:3000/api/songs/search?q='
     };
 
     let isAnimating = false;
     let searchDebounceTimeout = null;
 
-    // Helper: Build Song Item HTML
     function createSongItemHTML(song) {
       const title = song.title || song.name || 'Unknown Title';
       const artist = song.artist || song.artistName || 'Unknown Artist';
@@ -563,7 +562,6 @@
       `;
     }
 
-    // Fetch Songs for Library
     async function fetchLibrarySongs() {
       const container = document.getElementById('library-song-list');
       try {
@@ -573,18 +571,17 @@
         const songs = await response.json();
 
         if (!Array.isArray(songs) || songs.length === 0) {
-          container.innerHTML = `<div class="empty-search">No songs found in your server</div>`;
+          container.innerHTML = `<div class="empty-search">No songs found on server</div>`;
           return;
         }
 
         container.innerHTML = songs.map(createSongItemHTML).join('');
       } catch (err) {
         console.error('Failed to fetch library songs:', err);
-        container.innerHTML = `<div class="empty-search">Unable to load songs from server</div>`;
+        container.innerHTML = `<div class="empty-search">Unable to load songs from 192.168.1.15</div>`;
       }
     }
 
-    // Server-Side Search Handler with Debounce
     function handleSearch() {
       clearTimeout(searchDebounceTimeout);
       const query = document.getElementById('search-input').value.trim();
@@ -595,7 +592,7 @@
           <div class="card">
             <div class="card-text">
               <h3>Type to search</h3>
-              <p>Fetches directly from your API endpoint</p>
+              <p>Fetching from 192.168.1.15</p>
             </div>
           </div>
         `;
@@ -617,7 +614,7 @@
           resultsContainer.innerHTML = results.map(createSongItemHTML).join('');
         } catch (err) {
           console.error('Search API error:', err);
-          resultsContainer.innerHTML = `<div class="empty-search">Error searching server</div>`;
+          resultsContainer.innerHTML = `<div class="empty-search">Error reaching 192.168.1.15</div>`;
         }
       }, 250);
     }
