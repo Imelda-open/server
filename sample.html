@@ -3,146 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini YT Music Player</title>
+    <title>YT Music Player</title>
     <style>
+        :root {
+            --bg-color: #000000;
+            --surface-color: #121212;
+            --surface-hover: #1e1e1e;
+            --primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #ffffff;
+            --accent-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
         body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
-            margin: 0;
+            overflow: hidden;
         }
-        .player-card {
-            background: #181818;
+
+        /* App Container */
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sections */
+        .section {
+            flex: 1;
+            display: none;
+            flex-direction: column;
             padding: 20px;
-            border-radius: 12px;
-            width: 380px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            overflow-y: auto;
+            padding-bottom: 120px; /* Space for mini player/nav */
+        }
+
+        .section.active {
+            display: flex;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Search Input */
+        .search-box {
+            width: 100%;
+            padding: 14px 18px;
+            background-color: var(--surface-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            color: var(--primary);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 20px;
+        }
+        .search-box:focus {
+            border-color: var(--primary);
+        }
+
+        /* Spotify-style Track Lists */
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            gap: 14px;
+        }
+
+        .track-item:hover {
+            background-color: var(--surface-hover);
+        }
+
+        .track-num {
+            color: var(--text-secondary);
+            font-size: 14px;
+            width: 20px;
             text-align: center;
         }
-        input {
-            width: 75%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #333;
-            background: #222;
-            color: #fff;
-            margin-bottom: 10px;
+
+        .track-info {
+            flex: 1;
+            overflow: hidden;
         }
-        button {
-            padding: 10px 12px;
-            background: #1db954;
-            border: none;
-            color: white;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        button:hover { background: #1aa34a; }
-        .results-list {
-            max-height: 220px;
-            overflow-y: auto;
-            text-align: left;
-            margin-top: 15px;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-        }
-        .song-item {
-            padding: 8px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
+
+        .track-title {
+            font-size: 15px;
+            font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .song-item:hover { background: #282828; }
-        .song-num {
-            color: #1db954;
-            font-weight: bold;
-            margin-right: 6px;
+
+        .track-artist {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
         }
-        #now-playing {
-            margin-top: 15px;
+
+        .track-action {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            font-size: 16px;
+        }
+        .track-action:hover {
+            color: var(--primary);
+        }
+
+        /* Settings Section Styles */
+        .settings-group {
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .settings-title {
             font-size: 14px;
-            color: #1db954;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .settings-value {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Bottom Now Playing Bar */
+        .now-playing-bar {
+            position: absolute;
+            bottom: 70px;
+            left: 16px;
+            right: 16px;
+            background-color: #1a1a1a;
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .np-details {
+            overflow: hidden;
+            flex: 1;
+            margin-right: 10px;
+        }
+        .np-title {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .np-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .np-controls button {
+            background: var(--primary);
+            color: var(--bg-color);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Material You Bottom Navigation */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            width: 33.33%;
+            height: 100%;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-pill {
+            padding: 4px 20px;
+            border-radius: 16px;
+            transition: background-color 0.2s;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-item.active .nav-pill {
+            background-color: var(--accent-bg);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        /* Hidden iframe audio player */
+        #ytAudioPlayer {
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="player-card">
-        <h3>YT Music Player</h3>
-        <input type="text" id="searchQuery" placeholder="Search song..." onkeydown="if(event.key === 'Enter') searchSongs()">
-        <button onclick="searchSongs()">Search</button>
+    <div class="app-container">
         
-        <div id="now-playing">Search and press a number key (1-9) to play</div>
-        
-        <div class="results-list" id="resultsList"></div>
-        
-        <!-- Embedded YouTube iframe for audio playback -->
-        <iframe id="ytAudioPlayer" width="0" height="0" src="" allow="autoplay"></iframe>
+        <!-- SECTION 1: LIBRARY -->
+        <div id="section-library" class="section active">
+            <h2>Library</h2>
+            <div class="track-list" id="libraryList">
+                <!-- Library items populated via script -->
+            </div>
+        </div>
+
+        <!-- SECTION 2: SEARCH -->
+        <div id="section-search" class="section">
+            <h2>Search</h2>
+            <input type="text" class="search-box" id="searchQuery" placeholder="Search YouTube Music..." onkeydown="if(event.key === 'Enter') searchSongs()">
+            <div class="track-list" id="searchResultsList"></div>
+        </div>
+
+        <!-- SECTION 3: SETTINGS -->
+        <div id="section-settings" class="section">
+            <h2>Settings</h2>
+            <div class="settings-group">
+                <div class="settings-title">API Server Connection</div>
+                <div class="settings-value" id="serverStatus">http://192.168.1.15:3000</div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-title">Playback Mode</div>
+                <div class="settings-value">YouTube Embedded Audio Stream</div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-title">UI Theme</div>
+                <div class="settings-value">Material Black & White</div>
+            </div>
+        </div>
+
+        <!-- NOW PLAYING BAR -->
+        <div class="now-playing-bar" id="nowPlayingBar" style="display: none;">
+            <div class="np-details">
+                <div class="np-title" id="npTitle">Song Title</div>
+                <div class="np-status" id="npArtist">Artist Name</div>
+            </div>
+            <div class="np-controls">
+                <button onclick="togglePlayState()">⏸</button>
+            </div>
+        </div>
+
+        <!-- MATERIAL YOU BOTTOM NAVIGATION -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchSection('library', this)">
+                <div class="nav-pill">
+                    <span class="nav-icon">🎵</span>
+                    <span>Library</span>
+                </div>
+            </button>
+            <button class="nav-item" onclick="switchSection('search', this)">
+                <div class="nav-pill">
+                    <span class="nav-icon">🔍</span>
+                    <span>Search</span>
+                </div>
+            </button>
+            <button class="nav-item" onclick="switchSection('settings', this)">
+                <div class="nav-pill">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </div>
+            </button>
+        </nav>
+
+        <!-- Hidden Audio Frame -->
+        <iframe id="ytAudioPlayer" src="" allow="autoplay"></iframe>
+
     </div>
 
     <script>
         const SERVER_URL = 'http://192.168.1.15:3000';
-        let currentSongs = [];
+        
+        // Mock library songs (you can add your favorite tracks here or save them)
+        let librarySongs = [
+            { videoId: 'jfKfPfyJRdk', name: 'Lofi hip hop radio - beats to study/relax to', artist: { name: 'Lofi Girl' } },
+            { videoId: '5qap5aO4i9A', name: 'lofi hip hop radio - beats to sleep/chill to', artist: { name: 'Lofi Girl' } }
+        ];
+
+        // Initialize Library View on load
+        window.onload = () => {
+            renderLibrary();
+        };
+
+        function switchSection(sectionName, element) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            // Deactivate all nav items
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            
+            // Show target section and activate button
+            document.getElementById(`section-${sectionName}`).classList.add('active');
+            element.classList.add('active');
+        }
+
+        function renderLibrary() {
+            const list = document.getElementById('libraryList');
+            list.innerHTML = '';
+            librarySongs.forEach((song, index) => {
+                const div = document.createElement('div');
+                div.className = 'track-item';
+                div.innerHTML = `
+                    <div class="track-num">${index + 1}</div>
+                    <div class="track-info">
+                        <div class="track-title">${song.name}</div>
+                        <div class="track-artist">${song.artist?.name || 'Unknown'}</div>
+                    </div>
+                    <button class="track-action" onclick="playSong('${song.videoId}', '${song.name.replace(/'/g, "\\'")}', '${song.artist?.name || 'Unknown'}')">▶</button>
+                `;
+                list.appendChild(div);
+            });
+        }
 
         async function searchSongs() {
             const query = document.getElementById('searchQuery').value;
             if (!query) return;
 
-            const resultsList = document.getElementById('resultsList');
-            resultsList.innerHTML = 'Searching...';
+            const resultsList = document.getElementById('searchResultsList');
+            resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">Searching...</div>';
 
             try {
                 const response = await fetch(`${SERVER_URL}/search?q=${encodeURIComponent(query)}`);
-                currentSongs = await response.json();
+                const songs = await response.json();
 
                 resultsList.innerHTML = '';
-                if (currentSongs.length === 0) {
-                    resultsList.innerHTML = 'No results found.';
+                if (songs.length === 0) {
+                    resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">No results found.</div>';
                     return;
                 }
 
-                // Show top 9 results so they map cleanly to keys 1 through 9
-                const displaySongs = currentSongs.slice(0, 9);
-                displaySongs.forEach((song, index) => {
+                songs.forEach((song, index) => {
                     const div = document.createElement('div');
-                    div.className = 'song-item';
-                    div.innerHTML = `<span class="song-num">[${index + 1}]</span> ${song.name} - ${song.artist?.name || 'Unknown'}`;
-                    div.onclick = () => playSong(song.videoId, song.name);
+                    div.className = 'track-item';
+                    div.innerHTML = `
+                        <div class="track-num">${index + 1}</div>
+                        <div class="track-info">
+                            <div class="track-title">${song.name}</div>
+                            <div class="track-artist">${song.artist?.name || 'Unknown'}</div>
+                        </div>
+                        <button class="track-action" title="Add to Library" onclick='addToLibrary(${JSON.stringify(song)})'>+</button>
+                        <button class="track-action" onclick="playSong('${song.videoId}', '${song.name.replace(/'/g, "\\'")}', '${song.artist?.name || 'Unknown'}')">▶</button>
+                    `;
                     resultsList.appendChild(div);
                 });
             } catch (err) {
-                resultsList.innerHTML = 'Error connecting to Termux API.';
+                resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">Error connecting to Termux API.</div>';
                 console.error(err);
             }
         }
 
-        function playSong(videoId, title) {
-            document.getElementById('now-playing').textContent = `Playing: ${title}`;
+        function addToLibrary(song) {
+            // Check if already exists
+            if (!librarySongs.some(s => s.videoId === song.videoId)) {
+                librarySongs.push(song);
+                renderLibrary();
+                alert('Added to Library!');
+            } else {
+                alert('Song is already in your library.');
+            }
+        }
+
+        function playSong(videoId, title, artist) {
+            document.getElementById('nowPlayingBar').style.display = 'flex';
+            document.getElementById('npTitle').textContent = title;
+            document.getElementById('npArtist').textContent = artist;
+            
             const player = document.getElementById('ytAudioPlayer');
             player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
         }
 
-        // Global keyboard listener to play track when keys 1-9 are pressed
-        document.addEventListener('keydown', (event) => {
-            // Ignore if the user is currently typing inside the search input box
-            if (document.activeElement === document.getElementById('searchQuery')) return;
-
-            const key = event.key;
-            const index = parseInt(key) - 1; // Map key '1' to index 0, '2' to index 1, etc.
-
-            if (index >= 0 && index < currentSongs.length) {
-                const song = currentSongs[index];
-                playSong(song.videoId, song.name);
+        function togglePlayState() {
+            const player = document.getElementById('ytAudioPlayer');
+            // Toggling src blank stops playback
+            if (player.src) {
+                player.src = '';
+                document.getElementById('npStatus').textContent = 'Paused';
             }
-        });
+        }
     </script>
 </body>
 </html>
