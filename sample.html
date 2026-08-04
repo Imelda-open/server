@@ -11,7 +11,6 @@
             --surface-hover: #1e1e1e;
             --primary: #ffffff;
             --text-secondary: #a0a0a0;
-            --accent: #ffffff;
             --accent-bg: rgba(255, 255, 255, 0.1);
         }
 
@@ -22,23 +21,45 @@
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* Enforce portrait framing with black letterboxing bars */
         body {
-            background-color: var(--bg-color);
+            background-color: #050505;
             color: var(--primary);
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
+            margin: 0;
             overflow: hidden;
         }
 
-        /* App Container */
+        /* Portrait Container locked inside black bars */
+        .app-frame {
+            width: 100%;
+            max-width: 420px;
+            height: 100%;
+            max-height: 900px;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+        }
+
+        @media (min-width: 421px) {
+            .app-frame {
+                height: 92vh;
+                border-radius: 24px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        /* App Container Layout */
         .app-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            max-width: 600px;
-            width: 100%;
-            margin: 0 auto;
             overflow: hidden;
             position: relative;
         }
@@ -50,7 +71,7 @@
             flex-direction: column;
             padding: 20px;
             overflow-y: auto;
-            padding-bottom: 120px; /* Space for mini player/nav */
+            padding-bottom: 130px;
         }
 
         .section.active {
@@ -81,32 +102,34 @@
             border-color: var(--primary);
         }
 
-        /* Spotify-style Track Lists */
+        /* Track Lists */
         .track-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
         }
 
         .track-item {
             display: flex;
             align-items: center;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 8px 10px;
+            border-radius: 12px;
             cursor: pointer;
             transition: background 0.2s;
-            gap: 14px;
+            gap: 12px;
         }
 
         .track-item:hover {
             background-color: var(--surface-hover);
         }
 
-        .track-num {
-            color: var(--text-secondary);
-            font-size: 14px;
-            width: 20px;
-            text-align: center;
+        .track-thumb {
+            width: 46px;
+            height: 46px;
+            border-radius: 8px;
+            object-fit: cover;
+            background-color: #222;
+            flex-shrink: 0;
         }
 
         .track-info {
@@ -115,7 +138,7 @@
         }
 
         .track-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             white-space: nowrap;
             overflow: hidden;
@@ -123,12 +146,17 @@
         }
 
         .track-artist {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             margin-top: 2px;
+        }
+
+        .track-actions {
+            display: flex;
+            gap: 4px;
         }
 
         .track-action {
@@ -137,13 +165,16 @@
             color: var(--text-secondary);
             cursor: pointer;
             padding: 8px;
-            font-size: 16px;
+            font-size: 14px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
         }
         .track-action:hover {
             color: var(--primary);
+            background-color: rgba(255, 255, 255, 0.05);
         }
 
-        /* Settings Section Styles */
+        /* Settings Section */
         .settings-group {
             background-color: var(--surface-color);
             border-radius: 16px;
@@ -152,29 +183,37 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .settings-title {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .settings-value {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
         }
 
-        /* Bottom Now Playing Bar */
+        /* Now Playing Bar */
         .now-playing-bar {
             position: absolute;
-            bottom: 70px;
+            bottom: 75px;
             left: 16px;
             right: 16px;
-            background-color: #1a1a1a;
-            border-radius: 14px;
-            padding: 12px 16px;
+            background-color: rgba(24, 24, 24, 0.95);
+            border-radius: 16px;
+            padding: 10px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+        }
+        .np-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-right: 10px;
+            background-color: #222;
         }
         .np-details {
             overflow: hidden;
@@ -182,16 +221,19 @@
             margin-right: 10px;
         }
         .np-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .np-status {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
             margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .np-controls button {
             background: var(--primary);
@@ -205,9 +247,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 13px;
         }
 
-        /* Material You Bottom Navigation */
+        /* Bottom Navigation */
         .bottom-nav {
             position: absolute;
             bottom: 0;
@@ -240,26 +283,28 @@
         }
 
         .nav-pill {
-            padding: 4px 20px;
-            border-radius: 16px;
+            padding: 6px 18px;
+            border-radius: 18px;
             transition: background-color 0.2s;
             font-size: 12px;
             font-weight: 500;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
         }
 
         .nav-item.active .nav-pill {
             background-color: var(--accent-bg);
         }
 
+        /* SVG Icons */
         .nav-icon {
-            font-size: 18px;
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
         }
 
-        /* Hidden iframe audio player */
         #ytAudioPlayer {
             display: none;
         }
@@ -267,116 +312,134 @@
 </head>
 <body>
 
-    <div class="app-container">
-        
-        <!-- SECTION 1: LIBRARY -->
-        <div id="section-library" class="section active">
-            <h2>Library</h2>
-            <div class="track-list" id="libraryList">
-                <!-- Library items populated via script -->
-            </div>
-        </div>
-
-        <!-- SECTION 2: SEARCH -->
-        <div id="section-search" class="section">
-            <h2>Search</h2>
-            <input type="text" class="search-box" id="searchQuery" placeholder="Search YouTube Music..." onkeydown="if(event.key === 'Enter') searchSongs()">
-            <div class="track-list" id="searchResultsList"></div>
-        </div>
-
-        <!-- SECTION 3: SETTINGS -->
-        <div id="section-settings" class="section">
-            <h2>Settings</h2>
-            <div class="settings-group">
-                <div class="settings-title">API Server Connection</div>
-                <div class="settings-value" id="serverStatus">http://192.168.1.15:3000</div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-title">Playback Mode</div>
-                <div class="settings-value">YouTube Embedded Audio Stream</div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-title">UI Theme</div>
-                <div class="settings-value">Material Black & White</div>
-            </div>
-        </div>
-
-        <!-- NOW PLAYING BAR -->
-        <div class="now-playing-bar" id="nowPlayingBar" style="display: none;">
-            <div class="np-details">
-                <div class="np-title" id="npTitle">Song Title</div>
-                <div class="np-status" id="npArtist">Artist Name</div>
-            </div>
-            <div class="np-controls">
-                <button onclick="togglePlayState()">⏸</button>
-            </div>
-        </div>
-
-        <!-- MATERIAL YOU BOTTOM NAVIGATION -->
-        <nav class="bottom-nav">
-            <button class="nav-item active" onclick="switchSection('library', this)">
-                <div class="nav-pill">
-                    <span class="nav-icon">🎵</span>
-                    <span>Library</span>
+    <div class="app-frame">
+        <div class="app-container">
+            
+            <!-- LIBRARY SECTION -->
+            <div id="section-library" class="section active">
+                <h2>Library</h2>
+                <div class="track-list" id="libraryList">
+                    <!-- Populated dynamically -->
                 </div>
-            </button>
-            <button class="nav-item" onclick="switchSection('search', this)">
-                <div class="nav-pill">
-                    <span class="nav-icon">🔍</span>
-                    <span>Search</span>
-                </div>
-            </button>
-            <button class="nav-item" onclick="switchSection('settings', this)">
-                <div class="nav-pill">
-                    <span class="nav-icon">⚙️</span>
-                    <span>Settings</span>
-                </div>
-            </button>
-        </nav>
+            </div>
 
-        <!-- Hidden Audio Frame -->
-        <iframe id="ytAudioPlayer" src="" allow="autoplay"></iframe>
+            <!-- SEARCH SECTION -->
+            <div id="section-search" class="section">
+                <h2>Search</h2>
+                <input type="text" class="search-box" id="searchQuery" placeholder="Search YouTube Music..." onkeydown="if(event.key === 'Enter') searchSongs()">
+                <div class="track-list" id="searchResultsList"></div>
+            </div>
 
+            <!-- SETTINGS SECTION -->
+            <div id="section-settings" class="section">
+                <h2>Settings</h2>
+                <div class="settings-group">
+                    <div class="settings-title">API Server Connection</div>
+                    <div class="settings-value">http://192.168.1.15:3000</div>
+                </div>
+                <div class="settings-group">
+                    <div class="settings-title">Artwork Provider</div>
+                    <div class="settings-value">Apple Music API Catalog</div>
+                </div>
+                <div class="settings-group">
+                    <div class="settings-title">Display Mode</div>
+                    <div class="settings-value">Locked Portrait Frame</div>
+                </div>
+            </div>
+
+            <!-- NOW PLAYING BAR -->
+            <div class="now-playing-bar" id="nowPlayingBar" style="display: none;">
+                <img id="npThumb" class="np-thumb" src="" alt="">
+                <div class="np-details">
+                    <div class="np-title" id="npTitle">Song Title</div>
+                    <div class="np-status" id="npArtist">Artist Name</div>
+                </div>
+                <div class="np-controls">
+                    <button onclick="togglePlayState()">II</button>
+                </div>
+            </div>
+
+            <!-- BOTTOM NAVIGATION (Clean SVG Icons) -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" onclick="switchSection('library', this)">
+                    <div class="nav-pill">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+                        <span>Library</span>
+                    </div>
+                </button>
+                <button class="nav-item" onclick="switchSection('search', this)">
+                    <div class="nav-pill">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        <span>Search</span>
+                    </div>
+                </button>
+                <button class="nav-item" onclick="switchSection('settings', this)">
+                    <div class="nav-pill">
+                        <svg class="nav-icon" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                        <span>Settings</span>
+                    </div>
+                </button>
+            </nav>
+
+            <iframe id="ytAudioPlayer" src="" allow="autoplay"></iframe>
+
+        </div>
     </div>
 
     <script>
         const SERVER_URL = 'http://192.168.1.15:3000';
         
-        // Mock library songs (you can add your favorite tracks here or save them)
-        let librarySongs = [
-            { videoId: 'jfKfPfyJRdk', name: 'Lofi hip hop radio - beats to study/relax to', artist: { name: 'Lofi Girl' } },
-            { videoId: '5qap5aO4i9A', name: 'lofi hip hop radio - beats to sleep/chill to', artist: { name: 'Lofi Girl' } }
+        let librarySongs = JSON.parse(localStorage.getItem('yt_library')) || [
+            { videoId: 'jfKfPfyJRdk', name: 'Lofi hip hop radio - beats to study/relax to', artist: 'Lofi Girl', artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/37/67/7f/37677f24-0370-13b9-1f48-03cd585e1975/artwork.jpg/300x300bb.jpg' }
         ];
 
-        // Initialize Library View on load
         window.onload = () => {
             renderLibrary();
         };
 
         function switchSection(sectionName, element) {
-            // Hide all sections
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            // Deactivate all nav items
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            
-            // Show target section and activate button
             document.getElementById(`section-${sectionName}`).classList.add('active');
             element.classList.add('active');
+        }
+
+        // Fetch artwork dynamically using Apple Music public search API
+        async function fetchAppleMusicArt(title, artist) {
+            try {
+                const query = encodeURIComponent(`${title} ${artist}`);
+                const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`);
+                const data = await res.json();
+                if (data.results && data.results.length > 0) {
+                    // Swap template resolution to 300x300 high quality image
+                    return data.results[0].artworkUrl100.replace('100x100bb', '300x300bb');
+                }
+            } catch (e) {
+                console.error('Artwork fetch error:', e);
+            }
+            return 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&q=80'; // fallback
         }
 
         function renderLibrary() {
             const list = document.getElementById('libraryList');
             list.innerHTML = '';
+            if (librarySongs.length === 0) {
+                list.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px; font-size: 14px;">Your library is empty. Search and add tracks!</div>';
+                return;
+            }
+
             librarySongs.forEach((song, index) => {
                 const div = document.createElement('div');
                 div.className = 'track-item';
                 div.innerHTML = `
-                    <div class="track-num">${index + 1}</div>
-                    <div class="track-info">
+                    <img class="track-thumb" src="${song.artwork}" alt="">
+                    <div class="track-info" onclick="playSong('${song.videoId}', '${song.name.replace(/'/g, "\\'")}', '${song.artist.replace(/'/g, "\\'")}', '${song.artwork}')">
                         <div class="track-title">${song.name}</div>
-                        <div class="track-artist">${song.artist?.name || 'Unknown'}</div>
+                        <div class="track-artist">${song.artist}</div>
                     </div>
-                    <button class="track-action" onclick="playSong('${song.videoId}', '${song.name.replace(/'/g, "\\'")}', '${song.artist?.name || 'Unknown'}')">▶</button>
+                    <div class="track-actions">
+                        <button class="track-action" title="Remove" onclick="removeFromLibrary(${index})">✕</button>
+                    </div>
                 `;
                 list.appendChild(div);
             });
@@ -387,7 +450,7 @@
             if (!query) return;
 
             const resultsList = document.getElementById('searchResultsList');
-            resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">Searching...</div>';
+            resultsList.innerHTML = '<div style="color: var(--text-secondary); padding: 20px; text-align: center; font-size: 14px;">Searching...</div>';
 
             try {
                 const response = await fetch(`${SERVER_URL}/search?q=${encodeURIComponent(query)}`);
@@ -395,45 +458,59 @@
 
                 resultsList.innerHTML = '';
                 if (songs.length === 0) {
-                    resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">No results found.</div>';
+                    resultsList.innerHTML = '<div style="color: var(--text-secondary); padding: 20px; text-align: center; font-size: 14px;">No results found.</div>';
                     return;
                 }
 
-                songs.forEach((song, index) => {
+                for (let i = 0; i < songs.length; i++) {
+                    const song = songs[i];
+                    const songName = song.name;
+                    const artistName = song.artist?.name || 'Unknown';
+                    
+                    // Fetch Apple Music Art matching search item
+                    const artworkUrl = await fetchAppleMusicArt(songName, artistName);
+
                     const div = document.createElement('div');
                     div.className = 'track-item';
                     div.innerHTML = `
-                        <div class="track-num">${index + 1}</div>
-                        <div class="track-info">
-                            <div class="track-title">${song.name}</div>
-                            <div class="track-artist">${song.artist?.name || 'Unknown'}</div>
+                        <img class="track-thumb" src="${artworkUrl}" alt="">
+                        <div class="track-info" onclick="playSong('${song.videoId}', '${songName.replace(/'/g, "\\'")}', '${artistName.replace(/'/g, "\\'")}', '${artworkUrl}')">
+                            <div class="track-title">${songName}</div>
+                            <div class="track-artist">${artistName}</div>
                         </div>
-                        <button class="track-action" title="Add to Library" onclick='addToLibrary(${JSON.stringify(song)})'>+</button>
-                        <button class="track-action" onclick="playSong('${song.videoId}', '${song.name.replace(/'/g, "\\'")}', '${song.artist?.name || 'Unknown'}')">▶</button>
+                        <div class="track-actions">
+                            <button class="track-action" title="Add to Library" onclick='addToLibrary({videoId: "${song.videoId}", name: "${songName.replace(/'/g, "\\'")}", artist: "${artistName.replace(/'/g, "\\'")}", artwork: "${artworkUrl}"})'>+</button>
+                        </div>
                     `;
                     resultsList.appendChild(div);
-                });
+                }
             } catch (err) {
-                resultsList.innerHTML = '<div style="color: #a0a0a0; padding: 10px; text-align: center;">Error connecting to Termux API.</div>';
+                resultsList.innerHTML = '<div style="color: var(--text-secondary); padding: 20px; text-align: center; font-size: 14px;">Error connecting to Termux API.</div>';
                 console.error(err);
             }
         }
 
         function addToLibrary(song) {
-            // Check if already exists
             if (!librarySongs.some(s => s.videoId === song.videoId)) {
                 librarySongs.push(song);
+                localStorage.setItem('yt_library', JSON.stringify(librarySongs));
                 renderLibrary();
-                alert('Added to Library!');
             } else {
                 alert('Song is already in your library.');
             }
         }
 
-        function playSong(videoId, title, artist) {
+        function removeFromLibrary(index) {
+            librarySongs.splice(index, 1);
+            localStorage.setItem('yt_library', JSON.stringify(librarySongs));
+            renderLibrary();
+        }
+
+        function playSong(videoId, title, artist, artwork) {
             document.getElementById('nowPlayingBar').style.display = 'flex';
             document.getElementById('npTitle').textContent = title;
             document.getElementById('npArtist').textContent = artist;
+            document.getElementById('npThumb').src = artwork;
             
             const player = document.getElementById('ytAudioPlayer');
             player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
@@ -441,7 +518,6 @@
 
         function togglePlayState() {
             const player = document.getElementById('ytAudioPlayer');
-            // Toggling src blank stops playback
             if (player.src) {
                 player.src = '';
                 document.getElementById('npStatus').textContent = 'Paused';
