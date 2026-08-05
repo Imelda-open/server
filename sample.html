@@ -127,6 +127,84 @@
       text-overflow: ellipsis;
     }
 
+    /* Server Config Modal Overlay */
+    .config-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+    }
+
+    .config-modal.hidden {
+      display: none;
+    }
+
+    .config-card {
+      background: #222;
+      width: 100%;
+      max-width: 320px;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      border: 1px solid #333;
+      text-align: left;
+    }
+
+    .config-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .config-card p {
+      font-size: 12px;
+      color: #b3b3b3;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .config-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #121212;
+      border: 1px solid #444;
+      color: #fff;
+      font-size: 14px;
+      border-radius: 6px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .config-input:focus {
+      border-color: #1db954;
+    }
+
+    .config-btn {
+      width: 100%;
+      padding: 12px;
+      background: #1db954;
+      color: #000;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .config-btn:active {
+      background: #1aa34a;
+    }
+
     /* Center Search Overlay */
     .search-overlay {
       position: absolute;
@@ -429,6 +507,16 @@
 <body>
 
   <div class="viewport-wrapper" id="playerWrapper">
+    <!-- Server Config / Permission Modal Popup -->
+    <div class="config-modal" id="configModal">
+      <div class="config-card">
+        <h3>Connect API Server</h3>
+        <p>Mobile browsers require direct network routing. Enter your backend host address or local IP:</p>
+        <input type="text" class="config-input" id="serverInput" value="https://pepper-thanks-habitat-apparent.trycloudflare.com">
+        <button class="config-btn" onclick="saveServerConfig()">Connect & Continue</button>
+      </div>
+    </div>
+
     <!-- Background Artwork with Gradient Fade -->
     <div class="bg-artwork-container">
       <img id="bgArtworkImg" crossorigin="anonymous" src="https://cdn-images.dzcdn.net/images/cover/134778e4c4f19ea71c82408300925a9a/1900x1900-000000-80-0-0.jpg" alt="Background Artwork">
@@ -444,8 +532,8 @@
         <div class="subtitle">Playing from YouTube</div>
         <div class="title" id="headerAlbumTitle">Search a song</div>
       </div>
-      <button class="header-btn" aria-label="More options">
-        <i class="fa-solid fa-ellipsis-vertical"></i>
+      <button class="header-btn" onclick="openConfigModal()" aria-label="Server settings">
+        <i class="fa-solid fa-gear"></i>
       </button>
     </header>
 
@@ -512,7 +600,26 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
-    const SERVER_URL = 'https://pepper-thanks-habitat-apparent.trycloudflare.com';
+    let SERVER_URL = localStorage.getItem('spotify_server_url') || 'https://pepper-thanks-habitat-apparent.trycloudflare.com';
+    document.getElementById('serverInput').value = SERVER_URL;
+
+    // If already saved before, hide popup automatically
+    if (localStorage.getItem('spotify_server_url')) {
+      document.getElementById('configModal').classList.add('hidden');
+    }
+
+    function openConfigModal() {
+      document.getElementById('configModal').classList.remove('hidden');
+    }
+
+    function saveServerConfig() {
+      const val = document.getElementById('serverInput').value.trim();
+      if (val) {
+        SERVER_URL = val.replace(/\/+$/, ''); // remove trailing slash if any
+        localStorage.setItem('spotify_server_url', SERVER_URL);
+        document.getElementById('configModal').classList.add('hidden');
+      }
+    }
     
     let ytPlayer = null;
     let currentVideoId = '';
@@ -528,7 +635,6 @@
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     const searchOverlay = document.getElementById('searchOverlay');
 
-    // Fullscreen toggle anywhere on click (supports requestFullscreen across modern engines)
     document.addEventListener('click', (e) => {
       if (!document.fullscreenElement) {
         const docEl = document.documentElement;
@@ -629,7 +735,7 @@
           fetchAppleMusicArtForList(name, artist, videoId);
         });
       } catch (err) {
-        listContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 20px; font-size: 13px;">API Connection Error</div>';
+        listContainer.innerHTML = '<div style="color: #ff5555; text-align: center; padding: 20px; font-size: 13px;">Connection Failed.<br><a href="#" onclick="openConfigModal(); return false;" style="color:#fff; text-decoration:underline; display:inline-block; margin-top:6px;">Check IP / Settings</a></div>';
         console.error(err);
       }
     }
@@ -685,7 +791,7 @@
         document.documentElement.style.setProperty('--dynamic-bg-solid', solidColor);
         document.documentElement.style.setProperty('--dynamic-bg-fade', fadeColor);
       } catch (err) {
-        console.error('Color extraction failed (CORS/tainted canvas):', err);
+        console.error('Color extraction failed:', err);
       }
     }
 
