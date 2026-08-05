@@ -388,6 +388,7 @@
       pointer-events: none;
       transition: opacity 0.3s ease;
       overflow-y: auto;
+      scroll-behavior: smooth;
       scrollbar-width: none;
       -ms-overflow-style: none;
       padding: 20px 0;
@@ -408,7 +409,7 @@
       color: rgba(255, 255, 255, 0.4);
       margin: 12px 0;
       line-height: 1.3;
-      transition: all 0.3s ease;
+      transition: color 0.2s ease, font-size 0.2s ease, text-shadow 0.2s ease;
     }
 
     .lyrics-line.active {
@@ -417,7 +418,8 @@
       text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.4);
     }
 
-    #ytAudioPlayer {
+    /* YouTube iframe player container for native postMessage tracking */
+    #ytPlayerContainer {
       display: none;
     }
   </style>
@@ -502,19 +504,24 @@
       </section>
     </div>
 
-    <!-- Hidden audio / iframe handler -->
-    <iframe id="ytAudioPlayer" src="" allow="autoplay"></iframe>
+    <!-- YouTube IFrame API Container -->
+    <div id="ytPlayerContainer"></div>
   </div>
+
+  <!-- Load official YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
     const SERVER_URL = 'http://192.168.1.15:3000';
     
+    let ytPlayer = null;
     let currentVideoId = '';
     let isPlaying = false;
-    let trackDuration = 180; // default 3 mins
+    let trackDuration = 180;
     let currentPlaybackTime = 0;
-    let playbackInterval = null;
+    let timeUpdateInterval = null;
     let parsedLyrics = [];
+    let lastActiveLyricIndex = -1;
 
     const lyricsBtn = document.getElementById('lyricsBtn');
     const playerWrapper = document.getElementById('playerWrapper');
@@ -532,6 +539,40 @@
       playerWrapper.classList.toggle('lyrics-active');
       lyricsBtn.classList.toggle('active');
     });
+
+    // YouTube API Callback
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('ytPlayerContainer', {
+        height: '0',
+        width: '0',
+        playerVars: {
+          'autoplay': 1,
+          'controls': 0,
+          'enablejsapi': 1,
+          'origin': window.location.origin
+        },
+        events: {
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING) {
+        isPlaying = true;
+        updatePlayButtonState();
+        trackDuration = ytPlayer.getDuration() || 180;
+        startTimeTracker();
+      } else if (event.data == YT.PlayerState.PAUSED) {
+        isPlaying = false;
+        updatePlayButtonState();
+        stopTimeTracker();
+      } else if (event.data == YT.PlayerState.ENDED) {
+        isPlaying = false;
+        updatePlayButtonState();
+        stopTimeTracker();
+      }
+    }
 
     async function handleSearch() {
       const query = document.getElementById('searchInput').value;
@@ -567,7 +608,6 @@
           item.onclick = () => selectAndPlaySong(videoId, name, artist);
           listContainer.appendChild(item);
 
-          // Fetch Apple Music Art for results list
           fetchAppleMusicArtForList(name, artist, videoId);
         });
       } catch (err) {
@@ -609,6 +649,7 @@
       const lyricsView = document.getElementById('lyricsView');
       lyricsView.innerHTML = '<div class="lyrics-line active">Loading lyrics...</div>';
       parsedLyrics = [];
+      lastActiveLyricIndex = -1;
 
       try {
         const res = await fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`);
@@ -685,14 +726,17 @@
         }
       }
 
-      document.querySelectorAll('.lyrics-line').forEach((el, idx) => {
-        if (idx === activeIndex) {
-          el.classList.add('active');
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          el.classList.remove('active');
-        }
-      });
+      if (activeIndex !== lastActiveLyricIndex) {
+        lastActiveLyricIndex = activeIndex;
+        document.querySelectorAll('.lyrics-line').forEach((el, idx) => {
+          if (idx === activeIndex) {
+            el.classList.add('active');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            el.classList.remove('active');
+          }
+        });
+      }
     }
 
     function selectAndPlaySong(videoId, name, artist) {
@@ -703,36 +747,25 @@
       document.getElementById('artistNameDisplay').textContent = artist;
       document.getElementById('headerAlbumTitle').textContent = artist;
 
-      // Start actual YouTube audio iframe playback
-      const player = document.getElementById('ytAudioPlayer');
-      player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+        ytPlayer.loadVideoById(videoId);
+      }
       
       isPlaying = true;
-      currentPlaybackTime = 0;
-      trackDuration = 210; // default track estimate length
       updatePlayButtonState();
-      startPlaybackTimer();
 
-      // Fetch dynamic Apple Music artwork
       fetchAppleMusicArtMain(name, artist);
-
-      // Auto fetch lyrics from LRCLIB
       fetchLrclibLyrics(name, artist);
     }
 
     function togglePlayState() {
-      if (!currentVideoId) return;
-      isPlaying = !isPlaying;
-      const player = document.getElementById('ytAudioPlayer');
-
+      if (!currentVideoId || !ytPlayer) return;
+      
       if (isPlaying) {
-        player.src = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1`;
-        startPlaybackTimer();
+        ytPlayer.pauseVideo();
       } else {
-        player.src = '';
-        stopPlaybackTimer();
+        ytPlayer.playVideo();
       }
-      updatePlayButtonState();
     }
 
     function updatePlayButtonState() {
@@ -746,25 +779,25 @@
       }
     }
 
-    function startPlaybackTimer() {
-      stopPlaybackTimer();
-      playbackInterval = setInterval(() => {
-        if (isPlaying) {
-          currentPlaybackTime += 1;
-          if (currentPlaybackTime > trackDuration) currentPlaybackTime = trackDuration;
+    function startTimeTracker() {
+      stopTimeTracker();
+      timeUpdateInterval = setInterval(() => {
+        if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && isPlaying) {
+          currentPlaybackTime = ytPlayer.getCurrentTime() || 0;
+          trackDuration = ytPlayer.getDuration() || trackDuration;
           updateProgressUI();
           updateActiveLyric(currentPlaybackTime);
         }
-      }, 1000);
+      }, 250);
     }
 
-    function stopPlaybackTimer() {
-      if (playbackInterval) clearInterval(playbackInterval);
+    function stopTimeTracker() {
+      if (timeUpdateInterval) clearInterval(timeUpdateInterval);
     }
 
     function updateProgressUI() {
       const fill = document.getElementById('progressBarFill');
-      const pct = (currentPlaybackTime / trackDuration) * 100;
+      const pct = trackDuration > 0 ? (currentPlaybackTime / trackDuration) * 100 : 0;
       fill.style.width = `${pct}%`;
 
       document.getElementById('currentTimeDisplay').textContent = formatTime(currentPlaybackTime);
@@ -772,14 +805,16 @@
     }
 
     function seekTrack(event) {
-      if (!currentVideoId) return;
+      if (!currentVideoId || !ytPlayer) return;
       const bg = document.getElementById('progressBarBg');
       const rect = bg.getBoundingClientRect();
       const clickX = event.clientX - rect.left;
       const width = rect.width;
       const ratio = Math.max(0, Math.min(1, clickX / width));
       
-      currentPlaybackTime = ratio * trackDuration;
+      const newTime = ratio * trackDuration;
+      ytPlayer.seekTo(newTime, true);
+      currentPlaybackTime = newTime;
       updateProgressUI();
       updateActiveLyric(currentPlaybackTime);
     }
