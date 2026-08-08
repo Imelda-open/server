@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Downloader</title>
+    <title>Video Downloader - 9xbuddy Style</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -12,9 +12,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
         .container {
             background: #1e293b;
@@ -22,7 +23,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             box-sizing: border-box;
             text-align: center;
         }
@@ -82,30 +83,57 @@
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #334155;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
             text-align: left;
         }
-        .result-info {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.9rem;
-            color: #cbd5e1;
+        .video-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
         }
-        .download-side-btn {
+        .video-meta img {
+            width: 120px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .video-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #f8fafc;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .formats-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .format-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .format-btn {
             background-color: #22c55e;
             color: white;
-            padding: 8px 14px;
-            border-radius: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
             text-decoration: none;
             font-weight: bold;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            transition: background-color 0.2s;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
         }
-        .download-side-btn:hover {
+        .format-btn:hover {
             background-color: #16a34a;
         }
     </style>
@@ -114,28 +142,34 @@
 
     <div class="container">
         <h2>Video Downloader</h2>
-        <form id="downloadForm" onsubmit="startDownload(event)">
-            <input type="text" id="urlInput" placeholder="Paste link here..." autocomplete="off">
-            <button type="submit" id="downloadBtn">Find Video</button>
+        <form id="downloadForm" onsubmit="fetchVideoInfo(event)">
+            <input type="text" id="urlInput" placeholder="Paste video link here..." autocomplete="off">
+            <button type="submit" id="submitBtn">Get Video Info</button>
         </form>
         <p id="status"></p>
 
-        <!-- Video found container with download button on the right -->
+        <!-- 9xbuddy Style Result Box -->
         <div id="resultBox" class="result-box">
-            <div class="result-info" id="videoTitle">Video Ready</div>
-            <a id="downloadLink" href="#" class="download-side-btn">Download</a>
+            <div class="video-meta">
+                <img id="videoThumb" src="" alt="Thumbnail">
+                <div class="video-title" id="videoTitle">Video Title</div>
+            </div>
+            <div class="formats-list" id="formatsList">
+                <!-- Dynamically injected formats will appear here -->
+            </div>
         </div>
     </div>
 
     <script>
+        // REPLACE with your active Cloudflare tunnel URL
         const TUNNEL_URL = 'https://gregory-edward-gibson-flash.trycloudflare.com';
 
-        async function startDownload(event) {
+        async function fetchVideoInfo(event) {
             event.preventDefault();
 
             const urlInput = document.getElementById('urlInput');
             const status = document.getElementById('status');
-            const downloadBtn = document.getElementById('downloadBtn');
+            const submitBtn = document.getElementById('submitBtn');
             const resultBox = document.getElementById('resultBox');
             
             const url = urlInput.value.trim();
@@ -146,75 +180,65 @@
                 return;
             }
 
-            downloadBtn.disabled = true;
+            submitBtn.disabled = true;
             status.style.color = '#38bdf8';
-            status.innerText = "Starting download on server...";
+            status.innerText = "Fetching video details...";
             resultBox.style.display = 'none';
 
             try {
-                // 1. Tell backend to start download thread
-                const res = await fetch(`${TUNNEL_URL}/start_download`, {
+                const res = await fetch(`${TUNNEL_URL}/info`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, format: 'mp4', quality: 'best' })
+                    body: JSON.stringify({ url: url })
                 });
+                
                 const data = await res.json();
 
-                if (!res.ok || data.status !== 'started') {
-                    throw new Error(data.message || "Failed to start download.");
+                if (!res.ok || data.status !== 'success') {
+                    throw new Error(data.message || "Failed to fetch video info.");
                 }
 
-                const downloadId = data.download_id;
+                status.style.color = '#4ade80';
+                status.innerText = "Video found!";
                 
-                // 2. Poll for progress
-                pollProgress(downloadId);
+                // Populate metadata
+                document.getElementById('videoTitle').innerText = data.title;
+                document.getElementById('videoThumb').src = data.thumbnail || 'https://via.placeholder.com/120x70';
+
+                // Populate available formats
+                const formatsList = document.getElementById('formatsList');
+                formatsList.innerHTML = '';
+
+                data.formats.forEach(f => {
+                    const row = document.createElement('div');
+                    row.className = 'format-row';
+                    
+                    const infoSpan = document.createElement('span');
+                    infoSpan.innerText = `${f.ext.toUpperCase()} - ${f.resolution}`;
+
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.className = 'format-btn';
+                    downloadBtn.innerText = 'Download';
+                    // Hook this up to your downloader endpoint when ready
+                    downloadBtn.href = '#'; 
+                    downloadBtn.onclick = (e) => {
+                        e.preventDefault();
+                        alert(`Selected format ID: ${f.format_id} (${f.ext})`);
+                    };
+
+                    row.appendChild(infoSpan);
+                    row.appendChild(downloadBtn);
+                    formatsList.appendChild(row);
+                });
+
+                resultBox.style.display = 'block';
 
             } catch (err) {
                 status.style.color = '#f87171';
                 status.innerText = "Error: " + err.message;
-                downloadBtn.disabled = false;
+            } finally {
+                submitBtn.disabled = false;
             }
-        }
-
-        function pollProgress(downloadId) {
-            const status = document.getElementById('status');
-            const resultBox = document.getElementById('resultBox');
-            const downloadLink = document.getElementById('downloadLink');
-            const downloadBtn = document.getElementById('downloadBtn');
-            const videoTitle = document.getElementById('videoTitle');
-
-            const interval = setInterval(async () => {
-                try {
-                    const res = await fetch(`${TUNNEL_URL}/download_status/${downloadId}`);
-                    const data = await res.json();
-
-                    if (data.status === 'ready') {
-                        clearInterval(interval);
-                        status.style.color = '#4ade80';
-                        status.innerText = "Video found and processed successfully!";
-                        
-                        // Set up direct download link on the right side button
-                        videoTitle.innerText = data.filename;
-                        downloadLink.href = `${TUNNEL_URL}/download_file/${downloadId}`;
-                        resultBox.style.display = 'flex';
-                        downloadBtn.disabled = false;
-                    } else if (data.status === 'error') {
-                        clearInterval(interval);
-                        status.style.color = '#f87171';
-                        status.innerText = "Error: " + data.message;
-                        downloadBtn.disabled = false;
-                    } else {
-                        // Still downloading/processing
-                        status.style.color = '#38bdf8';
-                        status.innerText = `Downloading... Progress: ${data.progress || '0%'} (Speed: ${data.speed || '?'})`;
-                    }
-                } catch (e) {
-                    clearInterval(interval);
-                    status.style.color = '#f87171';
-                    status.innerText = "Lost connection while checking progress.";
-                    downloadBtn.disabled = false;
-                }
-            }, 1500);
         }
     </script>
 
