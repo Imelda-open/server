@@ -123,11 +123,13 @@
         <!-- Video found container with download button on the right -->
         <div id="resultBox" class="result-box">
             <div class="result-info" id="videoTitle">Video Ready</div>
-            <a id="downloadLink" href="#" class="download-side-btn" download>Download</a>
+            <a id="downloadLink" href="#" class="download-side-btn">Download</a>
         </div>
     </div>
 
     <script>
+        const TUNNEL_URL = 'https://gregory-edward-gibson-flash.trycloudflare.com';
+
         async function startDownload(event) {
             event.preventDefault();
 
@@ -135,11 +137,8 @@
             const status = document.getElementById('status');
             const downloadBtn = document.getElementById('downloadBtn');
             const resultBox = document.getElementById('resultBox');
-            const videoTitle = document.getElementById('videoTitle');
-            const downloadLink = document.getElementById('downloadLink');
             
             const url = urlInput.value.trim();
-
             if (!url) {
                 status.style.color = '#f87171';
                 status.innerText = "Please paste a valid URL first.";
@@ -149,39 +148,73 @@
 
             downloadBtn.disabled = true;
             status.style.color = '#38bdf8';
-            status.innerText = "Processing on server...";
+            status.innerText = "Starting download on server...";
             resultBox.style.display = 'none';
 
             try {
-                const apiUrl = 'https://gregory-edward-gibson-flash.trycloudflare.com/api/download';
-
-                const response = await fetch(apiUrl, {
+                // 1. Tell backend to start download thread
+                const res = await fetch(`${TUNNEL_URL}/start_download`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
+                    body: JSON.stringify({ url: url, format: 'mp4', quality: 'best' })
                 });
+                const data = await res.json();
 
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    status.style.color = '#4ade80';
-                    status.innerText = "Video found successfully!";
-                    
-                    // Show the result box with download button on the right
-                    videoTitle.innerText = "Downloaded Video File";
-                    downloadLink.href = "#"; // Replace with actual file stream URL if your backend serves it
-                    resultBox.style.display = 'flex';
-                } else {
-                    status.style.color = '#f87171';
-                    status.innerText = "Error: " + (data.error || "Failed to find video.");
+                if (!res.ok || data.status !== 'started') {
+                    throw new Error(data.message || "Failed to start download.");
                 }
+
+                const downloadId = data.download_id;
+                
+                // 2. Poll for progress
+                pollProgress(downloadId);
+
             } catch (err) {
                 status.style.color = '#f87171';
-                status.innerText = "Failed to connect to the backend server.";
-                console.error(err);
-            } finally {
+                status.innerText = "Error: " + err.message;
                 downloadBtn.disabled = false;
             }
+        }
+
+        function pollProgress(downloadId) {
+            const status = document.getElementById('status');
+            const resultBox = document.getElementById('resultBox');
+            const downloadLink = document.getElementById('downloadLink');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const videoTitle = document.getElementById('videoTitle');
+
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${TUNNEL_URL}/download_status/${downloadId}`);
+                    const data = await res.json();
+
+                    if (data.status === 'ready') {
+                        clearInterval(interval);
+                        status.style.color = '#4ade80';
+                        status.innerText = "Video found and processed successfully!";
+                        
+                        // Set up direct download link on the right side button
+                        videoTitle.innerText = data.filename;
+                        downloadLink.href = `${TUNNEL_URL}/download_file/${downloadId}`;
+                        resultBox.style.display = 'flex';
+                        downloadBtn.disabled = false;
+                    } else if (data.status === 'error') {
+                        clearInterval(interval);
+                        status.style.color = '#f87171';
+                        status.innerText = "Error: " + data.message;
+                        downloadBtn.disabled = false;
+                    } else {
+                        // Still downloading/processing
+                        status.style.color = '#38bdf8';
+                        status.innerText = `Downloading... Progress: ${data.progress || '0%'} (Speed: ${data.speed || '?'})`;
+                    }
+                } catch (e) {
+                    clearInterval(interval);
+                    status.style.color = '#f87171';
+                    status.innerText = "Lost connection while checking progress.";
+                    downloadBtn.disabled = false;
+                }
+            }, 1500);
         }
     </script>
 
