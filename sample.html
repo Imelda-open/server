@@ -1,985 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spotify Player UI</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
-
-    body {
-      background-color: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      height: 100vh;
-      width: 100vw;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      cursor: pointer;
-    }
-
-    /* Outer Container: Enforces 9:16 Portrait Box on Landscape with side bars */
-    .viewport-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      max-width: calc(100vh * (9 / 16));
-      max-height: 100vh;
-      padding: 24px 24px 20px;
-      overflow: hidden;
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
-      background-color: #121212;
-      transition: background-color 0.5s ease;
-    }
-
-    /* Full Background Cover Art with Seamless Gradient Coverage */
-    .bg-artwork-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-      transition: filter 0.3s ease;
-      transform: translateZ(0);
-    }
-
-    .bg-artwork-container img {
-      width: 100%;
-      height: 55%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .bg-artwork-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        180deg, 
-        rgba(0, 0, 0, 0.3) 0%, 
-        rgba(18, 18, 18, 0) 25%, 
-        var(--dynamic-bg-fade, rgba(18, 18, 18, 0.85)) 45%, 
-        var(--dynamic-bg-solid, #121212) 55%
-      );
-      transition: background 0.5s ease;
-    }
-
-    /* Blur background when lyrics view is open */
-    .viewport-wrapper.lyrics-active .bg-artwork-container {
-      filter: blur(20px) brightness(0.6);
-    }
-
-    /* Header */
-    .header {
-      position: absolute;
-      top: 24px;
-      left: 24px;
-      right: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 40px;
-      z-index: 2;
-    }
-
-    .header-btn {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 18px;
-      cursor: pointer;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    }
-
-    .header-title {
-      text-align: center;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-      flex: 1;
-      margin: 0 12px;
-    }
-
-    .header-title .subtitle {
-      font-size: 10px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #e0e0e0;
-      font-weight: 700;
-    }
-
-    .header-title .title {
-      font-size: 13px;
-      font-weight: 700;
-      margin-top: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Server Config Modal Overlay */
-    .config-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 100;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-      backdrop-filter: blur(8px);
-    }
-
-    .config-modal.hidden {
-      display: none;
-    }
-
-    .config-card {
-      background: #222;
-      width: 100%;
-      max-width: 320px;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      border: 1px solid #333;
-      text-align: left;
-    }
-
-    .config-card h3 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .config-card p {
-      font-size: 12px;
-      color: #b3b3b3;
-      margin-bottom: 16px;
-      line-height: 1.4;
-    }
-
-    .config-input {
-      width: 100%;
-      padding: 10px 12px;
-      background: #121212;
-      border: 1px solid #444;
-      color: #fff;
-      font-size: 14px;
-      border-radius: 6px;
-      outline: none;
-      margin-bottom: 16px;
-    }
-
-    .config-input:focus {
-      border-color: #1db954;
-    }
-
-    .config-btn {
-      width: 100%;
-      padding: 12px;
-      background: #1db954;
-      color: #000;
-      border: none;
-      font-weight: 700;
-      font-size: 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .config-btn:active {
-      background: #1aa34a;
-    }
-
-    /* Center Search Overlay */
-    .search-overlay {
-      position: absolute;
-      top: 80px;
-      left: 24px;
-      right: 24px;
-      bottom: 110px;
-      background: rgba(18, 18, 18, 0.95);
-      z-index: 10;
-      display: none;
-      flex-direction: column;
-      padding: 10px 0;
-      backdrop-filter: blur(10px);
-    }
-
-    .search-overlay.active {
-      display: flex;
-    }
-
-    .search-input-box {
-      width: 100%;
-      padding: 12px 16px;
-      background-color: #282828;
-      border: 1px solid #333;
-      color: #fff;
-      font-size: 15px;
-      border-radius: 4px;
-      outline: none;
-      margin-bottom: 12px;
-    }
-
-    .search-input-box:focus {
-      border-color: #fff;
-    }
-
-    .search-results-list {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      scrollbar-width: none;
-    }
-
-    .search-results-list::-webkit-scrollbar {
-      display: none;
-    }
-
-    .search-result-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px;
-      background: #222;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .search-result-item:hover {
-      background: #333;
-    }
-
-    .search-result-thumb {
-      width: 44px;
-      height: 44px;
-      object-fit: cover;
-      border-radius: 3px;
-      background: #444;
-    }
-
-    .search-result-meta {
-      overflow: hidden;
-      flex: 1;
-    }
-
-    .search-result-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .search-result-artist {
-      font-size: 12px;
-      color: #b3b3b3;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 2px;
-    }
-
-    /* Fixed Bottom Player Stack */
-    .bottom-player-stack {
-      position: absolute;
-      bottom: 20px;
-      left: 24px;
-      right: 24px;
-      z-index: 2;
-    }
-
-    /* Track Metadata */
-    .track-info {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .track-details {
-      overflow: hidden;
-      flex: 1;
-      margin-right: 10px;
-    }
-
-    .track-details .song-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .track-details .artist-name {
-      font-size: 14px;
-      color: #b3b3b3;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .lyrics-toggle-btn {
-      background: none;
-      border: none;
-      color: #b3b3b3;
-      font-size: 20px;
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-
-    .lyrics-toggle-btn.active {
-      color: #fff;
-    }
-
-    /* Scrub Bar */
-    .progress-container {
-      margin-bottom: 20px;
-    }
-
-    .progress-bar-bg {
-      width: 100%;
-      height: 4px;
-      background-color: rgba(255, 255, 255, 0.3);
-      border-radius: 2px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .progress-bar-fill {
-      width: 0%;
-      height: 100%;
-      background-color: #fff;
-      border-radius: 2px;
-      position: relative;
-    }
-
-    .progress-bar-fill::after {
-      content: '';
-      position: absolute;
-      right: -6px;
-      top: -4px;
-      width: 12px;
-      height: 12px;
-      background-color: #fff;
-      border-radius: 50%;
-      opacity: 0;
-      transition: opacity 0.1s;
-    }
-
-    .progress-container:hover .progress-bar-fill::after {
-      opacity: 1;
-    }
-
-    .time-stamps {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #b3b3b3;
-      margin-top: 8px;
-    }
-
-    /* Player Controls */
-    .controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .control-btn {
-      background: none;
-      border: none;
-      color: #b3b3b3;
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.1s, color 0.1s;
-    }
-
-    .control-btn:active {
-      transform: scale(0.95);
-    }
-
-    .control-btn.active {
-      color: #fff;
-    }
-
-    .control-btn.main {
-      color: #fff;
-      font-size: 22px;
-    }
-
-    .play-pause-btn {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background-color: #fff;
-      color: #000;
-      border: none;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-
-    .play-pause-btn:active {
-      transform: scale(0.95);
-    }
-
-    /* Lyrics View */
-    .lyrics-view {
-      position: absolute;
-      top: 80px;
-      left: 24px;
-      right: 24px;
-      bottom: 210px;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: flex-start;
-      text-align: left;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      overflow-y: auto;
-      scroll-behavior: smooth;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      padding: 20px 0;
-    }
-
-    .lyrics-view::-webkit-scrollbar {
-      display: none;
-    }
-
-    .viewport-wrapper.lyrics-active .lyrics-view {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .lyrics-line {
-      font-size: 20px;
-      font-weight: 700;
-      color: rgba(255, 255, 255, 0.4);
-      margin: 12px 0;
-      line-height: 1.3;
-      transition: color 0.2s ease, font-size 0.2s ease, text-shadow 0.2s ease;
-    }
-
-    .lyrics-line.active {
-      color: #fff;
-      font-size: 24px;
-      text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.4);
-    }
-
-    #ytPlayerContainer {
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #38bdf8;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #38bdf8;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0284c7;
+        }
+        button:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            word-break: break-word;
+        }
+        .result-box {
+            display: none;
+            margin-top: 20px;
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            text-align: left;
+        }
+        .result-info {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+        .download-side-btn {
+            background-color: #22c55e;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+        .download-side-btn:hover {
+            background-color: #16a34a;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="viewport-wrapper" id="playerWrapper">
-    <!-- Server Config / Permission Modal Popup -->
-    <div class="config-modal" id="configModal">
-      <div class="config-card">
-        <h3>Connect API Server</h3>
-        <p>Mobile browsers require direct network routing. Enter your backend host address or local IP:</p>
-        <input type="text" class="config-input" id="serverInput" value="https://pepper-thanks-habitat-apparent.trycloudflare.com">
-        <button class="config-btn" onclick="saveServerConfig()">Connect & Continue</button>
-      </div>
-    </div>
+    <div class="container">
+        <h2>Video Downloader</h2>
+        <form id="downloadForm" onsubmit="startDownload(event)">
+            <input type="text" id="urlInput" placeholder="Paste link here..." autocomplete="off">
+            <button type="submit" id="downloadBtn">Find Video</button>
+        </form>
+        <p id="status"></p>
 
-    <!-- Background Artwork with Gradient Fade -->
-    <div class="bg-artwork-container">
-      <img id="bgArtworkImg" crossorigin="anonymous" src="https://cdn-images.dzcdn.net/images/cover/134778e4c4f19ea71c82408300925a9a/1900x1900-000000-80-0-0.jpg" alt="Background Artwork">
-      <div class="bg-artwork-overlay"></div>
-    </div>
-
-    <!-- Header -->
-    <header class="header">
-      <button class="header-btn" id="searchToggleBtn" aria-label="Open search">
-        <i class="fa-solid fa-magnifying-glass"></i>
-      </button>
-      <div class="header-title">
-        <div class="subtitle">Playing from YouTube</div>
-        <div class="title" id="headerAlbumTitle">Search a song</div>
-      </div>
-      <button class="header-btn" onclick="openConfigModal()" aria-label="Server settings">
-        <i class="fa-solid fa-gear"></i>
-      </button>
-    </header>
-
-    <!-- Center Search Overlay -->
-    <div class="search-overlay" id="searchOverlay">
-      <input type="text" class="search-input-box" id="searchInput" placeholder="Search songs..." onkeydown="if(event.key === 'Enter') handleSearch()">
-      <div class="search-results-list" id="searchResultsList">
-        <div style="color: #777; text-align: center; padding: 20px; font-size: 13px;">Type a query and press enter</div>
-      </div>
-    </div>
-
-    <!-- Lyrics View -->
-    <div class="lyrics-view" id="lyricsView">
-      <div class="lyrics-line active">Instrumental or no lyrics available</div>
-    </div>
-
-    <!-- Anchored Bottom Controls Stack -->
-    <div class="bottom-player-stack">
-      <!-- Track Metadata & Lyrics Button -->
-      <section class="track-info">
-        <div class="track-details">
-          <div class="song-title" id="songTitleDisplay">Select a Song</div>
-          <div class="artist-name" id="artistNameDisplay">Use search icon above</div>
+        <!-- Video found container with download button on the right -->
+        <div id="resultBox" class="result-box">
+            <div class="result-info" id="videoTitle">Video Ready</div>
+            <a id="downloadLink" href="#" class="download-side-btn" download>Download</a>
         </div>
-        <button class="lyrics-toggle-btn" id="lyricsBtn" aria-label="Toggle lyrics">
-          <i class="fa-solid fa-align-left"></i>
-        </button>
-      </section>
-
-      <!-- Scrub Bar -->
-      <section class="progress-container">
-        <div class="progress-bar-bg" id="progressBarBg" onclick="seekTrack(event)">
-          <div class="progress-bar-fill" id="progressBarFill"></div>
-        </div>
-        <div class="time-stamps">
-          <span id="currentTimeDisplay">0:00</span>
-          <span id="durationDisplay">0:00</span>
-        </div>
-      </section>
-
-      <!-- Playback Controls -->
-      <section class="controls">
-        <button class="control-btn" aria-label="Enable shuffle">
-          <i class="fa-solid fa-shuffle"></i>
-        </button>
-        <button class="control-btn main" aria-label="Previous track">
-          <i class="fa-solid fa-backward-step"></i>
-        </button>
-        <button class="play-pause-btn" id="playPauseBtn" onclick="togglePlayState()" aria-label="Play or Pause">
-          <i class="fa-solid fa-play" id="playPauseIcon" style="margin-left: 2px;"></i>
-        </button>
-        <button class="control-btn main" aria-label="Next track">
-          <i class="fa-solid fa-forward-step"></i>
-        </button>
-        <button class="control-btn" aria-label="Enable repeat">
-          <i class="fa-solid fa-repeat"></i>
-        </button>
-      </section>
     </div>
 
-    <div id="ytPlayerContainer"></div>
-  </div>
+    <script>
+        async function startDownload(event) {
+            event.preventDefault();
 
-  <script src="https://www.youtube.com/iframe_api"></script>
+            const urlInput = document.getElementById('urlInput');
+            const status = document.getElementById('status');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const resultBox = document.getElementById('resultBox');
+            const videoTitle = document.getElementById('videoTitle');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            const url = urlInput.value.trim();
 
-  <script>
-    let SERVER_URL = localStorage.getItem('spotify_server_url') || 'https://pepper-thanks-habitat-apparent.trycloudflare.com';
-    document.getElementById('serverInput').value = SERVER_URL;
+            if (!url) {
+                status.style.color = '#f87171';
+                status.innerText = "Please paste a valid URL first.";
+                resultBox.style.display = 'none';
+                return;
+            }
 
-    // If already saved before, hide popup automatically
-    if (localStorage.getItem('spotify_server_url')) {
-      document.getElementById('configModal').classList.add('hidden');
-    }
+            downloadBtn.disabled = true;
+            status.style.color = '#38bdf8';
+            status.innerText = "Processing on server...";
+            resultBox.style.display = 'none';
 
-    function openConfigModal() {
-      document.getElementById('configModal').classList.remove('hidden');
-    }
+            try {
+                const apiUrl = 'https://gregory-edward-gibson-flash.trycloudflare.com/api/download';
 
-    function saveServerConfig() {
-      const val = document.getElementById('serverInput').value.trim();
-      if (val) {
-        SERVER_URL = val.replace(/\/+$/, ''); // remove trailing slash if any
-        localStorage.setItem('spotify_server_url', SERVER_URL);
-        document.getElementById('configModal').classList.add('hidden');
-      }
-    }
-    
-    let ytPlayer = null;
-    let currentVideoId = '';
-    let isPlaying = false;
-    let trackDuration = 180;
-    let currentPlaybackTime = 0;
-    let timeUpdateInterval = null;
-    let parsedLyrics = [];
-    let lastActiveLyricIndex = -1;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
 
-    const lyricsBtn = document.getElementById('lyricsBtn');
-    const playerWrapper = document.getElementById('playerWrapper');
-    const searchToggleBtn = document.getElementById('searchToggleBtn');
-    const searchOverlay = document.getElementById('searchOverlay');
+                const data = await response.json();
 
-    document.addEventListener('click', (e) => {
-      if (!document.fullscreenElement) {
-        const docEl = document.documentElement;
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen().catch(err => console.error("Fullscreen request failed:", err));
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
-        } else if (docEl.msRequestFullscreen) {
-          docEl.msRequestFullscreen();
+                if (response.ok && data.success) {
+                    status.style.color = '#4ade80';
+                    status.innerText = "Video found successfully!";
+                    
+                    // Show the result box with download button on the right
+                    videoTitle.innerText = "Downloaded Video File";
+                    downloadLink.href = "#"; // Replace with actual file stream URL if your backend serves it
+                    resultBox.style.display = 'flex';
+                } else {
+                    status.style.color = '#f87171';
+                    status.innerText = "Error: " + (data.error || "Failed to find video.");
+                }
+            } catch (err) {
+                status.style.color = '#f87171';
+                status.innerText = "Failed to connect to the backend server.";
+                console.error(err);
+            } finally {
+                downloadBtn.disabled = false;
+            }
         }
-      }
-    });
+    </script>
 
-    searchToggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      searchOverlay.classList.toggle('active');
-      if (searchOverlay.classList.contains('active')) {
-        document.getElementById('searchInput').focus();
-      }
-    });
-
-    lyricsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      playerWrapper.classList.toggle('lyrics-active');
-      lyricsBtn.classList.toggle('active');
-    });
-
-    function onYouTubeIframeAPIReady() {
-      ytPlayer = new YT.Player('ytPlayerContainer', {
-        height: '0',
-        width: '0',
-        playerVars: {
-          'autoplay': 1,
-          'controls': 0,
-          'enablejsapi': 1,
-          'origin': window.location.origin
-        },
-        events: {
-          'onStateChange': onPlayerStateChange
-        }
-      });
-    }
-
-    function onPlayerStateChange(event) {
-      if (event.data == YT.PlayerState.PLAYING) {
-        isPlaying = true;
-        updatePlayButtonState();
-        trackDuration = ytPlayer.getDuration() || 180;
-        startTimeTracker();
-      } else if (event.data == YT.PlayerState.PAUSED) {
-        isPlaying = false;
-        updatePlayButtonState();
-        stopTimeTracker();
-      } else if (event.data == YT.PlayerState.ENDED) {
-        isPlaying = false;
-        updatePlayButtonState();
-        stopTimeTracker();
-      }
-    }
-
-    async function handleSearch() {
-      const query = document.getElementById('searchInput').value;
-      if (!query) return;
-
-      const listContainer = document.getElementById('searchResultsList');
-      listContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 20px; font-size: 13px;">Searching...</div>';
-
-      try {
-        const res = await fetch(`${SERVER_URL}/search?q=${encodeURIComponent(query)}`);
-        const songs = await res.json();
-
-        listContainer.innerHTML = '';
-        if (!songs || songs.length === 0) {
-          listContainer.innerHTML = '<div style="color: #777; text-align: center; padding: 20px; font-size: 13px;">No results found</div>';
-          return;
-        }
-
-        songs.forEach(song => {
-          const name = song.name || 'Unknown Track';
-          const artist = song.artist?.name || 'Unknown Artist';
-          const videoId = song.videoId;
-
-          const item = document.createElement('div');
-          item.className = 'search-result-item';
-          item.innerHTML = `
-            <img class="search-result-thumb" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&q=80" alt="" id="thumb-${videoId}">
-            <div class="search-result-meta">
-              <div class="search-result-name">${escapeHtml(name)}</div>
-              <div class="search-result-artist">${escapeHtml(artist)}</div>
-            </div>
-          `;
-          item.onclick = (e) => {
-            e.stopPropagation();
-            selectAndPlaySong(videoId, name, artist);
-          };
-          listContainer.appendChild(item);
-
-          fetchAppleMusicArtForList(name, artist, videoId);
-        });
-      } catch (err) {
-        listContainer.innerHTML = '<div style="color: #ff5555; text-align: center; padding: 20px; font-size: 13px;">Connection Failed.<br><a href="#" onclick="openConfigModal(); return false;" style="color:#fff; text-decoration:underline; display:inline-block; margin-top:6px;">Check IP / Settings</a></div>';
-        console.error(err);
-      }
-    }
-
-    async function fetchAppleMusicArtForList(title, artist, videoId) {
-      try {
-        const query = encodeURIComponent(`${title} ${artist}`);
-        const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`);
-        const data = await res.json();
-        if (data.results && data.results.length > 0) {
-          const artworkUrl = data.results[0].artworkUrl100.replace('100x100bb', '600x600bb');
-          const imgElem = document.getElementById(`thumb-${videoId}`);
-          if (imgElem) imgElem.src = artworkUrl;
-        }
-      } catch (e) {
-        console.error('Artwork fetch error:', e);
-      }
-    }
-
-    async function fetchAppleMusicArtMain(title, artist) {
-      try {
-        const query = encodeURIComponent(`${title} ${artist}`);
-        const res = await fetch(`https://itunes.apple.com/search?term=${query}&entity=song&limit=1`);
-        const data = await res.json();
-        if (data.results && data.results.length > 0) {
-          const artworkUrl = data.results[0].artworkUrl100.replace('100x100bb', '1200x1200bb');
-          const imgElem = document.getElementById('bgArtworkImg');
-          imgElem.src = artworkUrl;
-          
-          imgElem.onload = () => {
-            extractDominantColor(imgElem);
-          };
-        }
-      } catch (e) {
-        console.error('Main artwork fetch error:', e);
-      }
-    }
-
-    function extractDominantColor(img) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = 50;
-      canvas.height = 50;
-      try {
-        ctx.drawImage(img, 0, 0, 50, 50);
-        const p = ctx.getImageData(25, 40, 1, 1).data;
-        const r = p[0], g = p[1], b = p[2];
-        
-        const solidColor = `rgb(${r}, ${g}, ${b})`;
-        const fadeColor = `rgba(${r}, ${g}, ${b}, 0.85)`;
-        
-        document.getElementById('playerWrapper').style.backgroundColor = solidColor;
-        document.documentElement.style.setProperty('--dynamic-bg-solid', solidColor);
-        document.documentElement.style.setProperty('--dynamic-bg-fade', fadeColor);
-      } catch (err) {
-        console.error('Color extraction failed:', err);
-      }
-    }
-
-    async function fetchLrclibLyrics(title, artist) {
-      const lyricsView = document.getElementById('lyricsView');
-      lyricsView.innerHTML = '<div class="lyrics-line active">Loading lyrics...</div>';
-      parsedLyrics = [];
-      lastActiveLyricIndex = -1;
-
-      try {
-        const res = await fetch(`https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`);
-        const data = await res.json();
-        
-        if (data && data.length > 0 && data[0].syncedLyrics) {
-          parseSyncedLyrics(data[0].syncedLyrics);
-        } else if (data && data.length > 0 && data[0].plainLyrics) {
-          renderPlainLyrics(data[0].plainLyrics);
-        } else {
-          lyricsView.innerHTML = '<div class="lyrics-line active">No synced lyrics found</div>';
-        }
-      } catch (e) {
-        lyricsView.innerHTML = '<div class="lyrics-line active">Failed to load lyrics</div>';
-      }
-    }
-
-    function parseSyncedLyrics(lrcString) {
-      const lines = lrcString.split('\n');
-      parsedLyrics = [];
-      const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
-
-      lines.forEach(line => {
-        const match = regex.exec(line);
-        if (match) {
-          const minutes = parseInt(match[1], 10);
-          const seconds = parseInt(match[2], 10);
-          const milliseconds = match[3].length === 2 ? parseInt(match[3], 10) * 10 : parseInt(match[3], 10);
-          const timeSec = minutes * 60 + seconds + milliseconds / 1000;
-          const text = match[4].trim();
-          if (text) {
-            parsedLyrics.push({ time: timeSec, text: text });
-          }
-        }
-      });
-
-      renderLyricsDOM();
-    }
-
-    function renderPlainLyrics(plainStr) {
-      const lyricsView = document.getElementById('lyricsView');
-      lyricsView.innerHTML = '';
-      const lines = plainStr.split('\n');
-      lines.forEach(line => {
-        if (line.trim()) {
-          const div = document.createElement('div');
-          div.className = 'lyrics-line';
-          div.textContent = line.trim();
-          lyricsView.appendChild(div);
-        }
-      });
-    }
-
-    function renderLyricsDOM() {
-      const lyricsView = document.getElementById('lyricsView');
-      lyricsView.innerHTML = '';
-      parsedLyrics.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'lyrics-line' + (index === 0 ? ' active' : '');
-        div.textContent = item.text;
-        div.id = `lyric-line-${index}`;
-        lyricsView.appendChild(div);
-      });
-    }
-
-    function updateActiveLyric(currentTime) {
-      if (parsedLyrics.length === 0) return;
-      let activeIndex = 0;
-      for (let i = 0; i < parsedLyrics.length; i++) {
-        if (currentTime >= parsedLyrics[i].time) {
-          activeIndex = i;
-        } else {
-          break;
-        }
-      }
-
-      if (activeIndex !== lastActiveLyricIndex) {
-        lastActiveLyricIndex = activeIndex;
-        document.querySelectorAll('.lyrics-line').forEach((el, idx) => {
-          if (idx === activeIndex) {
-            el.classList.add('active');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            el.classList.remove('active');
-          }
-        });
-      }
-    }
-
-    function selectAndPlaySong(videoId, name, artist) {
-      currentVideoId = videoId;
-      searchOverlay.classList.remove('active');
-
-      document.getElementById('songTitleDisplay').textContent = name;
-      document.getElementById('artistNameDisplay').textContent = artist;
-      document.getElementById('headerAlbumTitle').textContent = artist;
-
-      if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-        ytPlayer.loadVideoById(videoId);
-      }
-      
-      isPlaying = true;
-      updatePlayButtonState();
-
-      fetchAppleMusicArtMain(name, artist);
-      fetchLrclibLyrics(name, artist);
-    }
-
-    function togglePlayState() {
-      if (!currentVideoId || !ytPlayer) return;
-      
-      if (isPlaying) {
-        ytPlayer.pauseVideo();
-      } else {
-        ytPlayer.playVideo();
-      }
-    }
-
-    function updatePlayButtonState() {
-      const icon = document.getElementById('playPauseIcon');
-      if (isPlaying) {
-        icon.className = 'fa-solid fa-pause';
-        icon.style.marginLeft = '0px';
-      } else {
-        icon.className = 'fa-solid fa-play';
-        icon.style.marginLeft = '2px';
-      }
-    }
-
-    function startTimeTracker() {
-      stopTimeTracker();
-      timeUpdateInterval = setInterval(() => {
-        if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function' && isPlaying) {
-          currentPlaybackTime = ytPlayer.getCurrentTime() || 0;
-          trackDuration = ytPlayer.getDuration() || trackDuration;
-          updateProgressUI();
-          updateActiveLyric(currentPlaybackTime);
-        }
-      }, 250);
-    }
-
-    function stopTimeTracker() {
-      if (timeUpdateInterval) clearInterval(timeUpdateInterval);
-    }
-
-    function updateProgressUI() {
-      const fill = document.getElementById('progressBarFill');
-      const pct = trackDuration > 0 ? (currentPlaybackTime / trackDuration) * 100 : 0;
-      fill.style.width = `${pct}%`;
-
-      document.getElementById('currentTimeDisplay').textContent = formatTime(currentPlaybackTime);
-      document.getElementById('durationDisplay').textContent = formatTime(trackDuration);
-    }
-
-    function seekTrack(event) {
-      event.stopPropagation();
-      if (!currentVideoId || !ytPlayer) return;
-      const bg = document.getElementById('progressBarBg');
-      const rect = bg.getBoundingClientRect();
-      const clickX = event.clientX - rect.left;
-      const width = rect.width;
-      const ratio = Math.max(0, Math.min(1, clickX / width));
-      
-      const newTime = ratio * trackDuration;
-      ytPlayer.seekTo(newTime, true);
-      currentPlaybackTime = newTime;
-      updateProgressUI();
-      updateActiveLyric(currentPlaybackTime);
-    }
-
-    function formatTime(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    }
-
-    function escapeHtml(text) {
-      if (!text) return '';
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
-  </script>
 </body>
 </html>
